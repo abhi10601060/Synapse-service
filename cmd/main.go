@@ -5,9 +5,9 @@ import (
 	"log"
 	"synapse/stream/auth"
 	"synapse/stream/handler"
-
 	"github.com/gin-gonic/gin"
 )
+
 
 func main() {
 	fmt.Println("Welcome to Synapse Stream")
