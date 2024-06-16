@@ -2,6 +2,7 @@ package model
 
 import (
 	"log"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/websocket"
@@ -24,7 +25,7 @@ func (s *Streamer) listenToWs(){
 			log.Println("Error in reading message for streamer : ", err)
 			break
 		}
-		log.Println("From : " + s.UserId + ", Message type: " + string(msgType) + ", this is msg : " + string(msg))
+		log.Println("From : " + s.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
 	}
 }
 
@@ -46,7 +47,7 @@ func (v *Viewer) listenToWs(){
 			log.Println("Error in reading message for Viewer : ", err)
 			break
 		}
-		log.Println("From : " + v.UserId + ", Message type: " + string(msgType) + ", this is msg : " + string(msg))
+		log.Println("From : " + v.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
 	}
 }
 
