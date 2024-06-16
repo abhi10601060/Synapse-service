@@ -13,8 +13,12 @@ func main() {
 	fmt.Println("Welcome to Synapse Stream")
 
 	r := gin.Default()
-
-	r.GET("/start", authorize, handler.StartStream)
+	
+	stream := r.Group("/stream")
+	{
+		stream.GET("/start", authorize, handler.StartStream)
+	}
+	
 
 	r.Run(":8010")
 }
