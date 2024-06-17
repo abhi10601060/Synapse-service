@@ -24,7 +24,7 @@ func (m *StreamManager) StartStream(streamer *Streamer) {
 	stream := Stream{
 		Id:       pid,
 		Streamer: streamer,
-		Viewers:  &map[string]*Viewer{},
+		Viewers:  map[string]*Viewer{},
 	}
 	streamer.Stream = &stream
 	m.Lock()
@@ -32,4 +32,26 @@ func (m *StreamManager) StartStream(streamer *Streamer) {
 	m.Unlock()
 
 	log.Println("Stream Created and added to Manager: ", m.Streams)
+}
+
+func (m *StreamManager) AddViewerToStream(pid  string, viewer *Viewer) bool {
+
+	stream, isExist := m.Streams[pid]
+	if  !isExist {
+		log.Println("stream does not exist : ", pid)
+		return false
+	}
+	log.Println("stream exists : ", pid)
+	viewer.Stream = stream
+	stream.Lock()
+	stream.Viewers[viewer.UserId] = viewer
+	stream.Unlock()
+
+	log.Println("Viewer added to stream...")
+	return true
+}
+
+func (m *StreamManager) IsStreamExist(pid string) bool{
+	_, isExist := m.Streams[pid]
+	return isExist
 }

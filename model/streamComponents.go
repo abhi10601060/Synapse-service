@@ -42,7 +42,7 @@ type Viewer struct {
 	Stream *Stream
 }
 
-func (v *Viewer) listenToWs() {
+func (v *Viewer) ListenToWs() {
 	defer func() {
 		v.WsConn.Close()
 	}()
@@ -53,7 +53,7 @@ func (v *Viewer) listenToWs() {
 			log.Println("Error in reading message for Viewer : ", err)
 			break
 		}
-		log.Println("From : " + v.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
+		log.Println("From Viewer : " + v.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
 
 		jsonMap := make(map[string] json.RawMessage)
 		err = json.Unmarshal(msg, &jsonMap)
@@ -66,6 +66,6 @@ func (v *Viewer) listenToWs() {
 type Stream struct {
 	Id       string
 	Streamer *Streamer
-	Viewers  *map[string]*Viewer
-	*sync.RWMutex
+	Viewers  map[string]*Viewer
+	sync.RWMutex
 }

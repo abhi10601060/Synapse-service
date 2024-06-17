@@ -16,6 +16,7 @@ func main() {
 	stream := r.Group("/stream")
 	{
 		stream.GET("/start", middleware.Authorize, handler.StartStream)
+		stream.GET("/join/:pid", middleware.Authorize, handler.JoinStream)
 	}
 
 	r.Run(":8010")
