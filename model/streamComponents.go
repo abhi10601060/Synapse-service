@@ -28,11 +28,7 @@ func (s *Streamer) ListenToWs() {
 		}
 		log.Println("From Streamer : " + s.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
 
-		jsonMap := make(map[string] json.RawMessage)
-		err = json.Unmarshal(msg, &jsonMap)
-		if err != nil {
-			log.Println("error in unmarshal : ", err)
-		}
+		HandleWsMessage(msg, s.Stream)
 	}
 }
 
@@ -55,11 +51,24 @@ func (v *Viewer) ListenToWs() {
 		}
 		log.Println("From Viewer : " + v.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
 
-		jsonMap := make(map[string] json.RawMessage)
-		err = json.Unmarshal(msg, &jsonMap)
-		if err != nil {
-			log.Println("error in unmarshal : ", err)
-		}
+		HandleWsMessage(msg, v.Stream)
+	}
+}
+
+func HandleWsMessage(msg []byte, stream *Stream) {
+	jsonMap := make(map[string]json.RawMessage)
+	err := json.Unmarshal(msg, &jsonMap)
+	log.Println("JSON MAP FROM HANDLE MESSAGE IS : ", jsonMap)
+	if err != nil {
+		log.Println("error in unmarshal : ", err)
+		return
+	}
+
+	log.Println("Type received from message : ", string(jsonMap["type"]))
+	receivedMsgType,_ := strconv.Atoi(string(jsonMap["type"]))
+
+	if receivedMsgType == 1 {
+		stream.SendMessage(msg)
 	}
 }
 
@@ -68,4 +77,24 @@ type Stream struct {
 	Streamer *Streamer
 	Viewers  map[string]*Viewer
 	sync.RWMutex
+}
+
+func (s *Stream) SendMessage(msg []byte) {
+
+	log.Println("Strated writting message to all viewers...")
+
+	err := s.Streamer.WsConn.WriteMessage(1, msg)
+	if e, ok := err.(*websocket.CloseError); ok &&
+		(e.Code == websocket.CloseNormalClosure || e.Code == websocket.CloseNoStatusReceived) {
+		log.Println("Error in sending message to streamer : ", err)
+		return
+	}
+
+	for _, viewer := range s.Viewers {
+		err := viewer.WsConn.WriteMessage(1, msg)
+		if e, ok := err.(*websocket.CloseError); ok &&
+			(e.Code == websocket.CloseNormalClosure || e.Code == websocket.CloseNoStatusReceived) {
+			log.Println("Error in sending message to streamer : ", err)
+		}
+	}
 }
