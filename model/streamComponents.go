@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"log"
 	"strconv"
 	"sync"
@@ -14,21 +15,26 @@ type Streamer struct {
 	Stream *Stream
 }
 
-func (s *Streamer) listenToWs(){
-	defer func(){
+func (s *Streamer) ListenToWs() {
+	defer func() {
 		s.WsConn.Close()
 	}()
-	for{
+	for {
 		msgType, msg, err := s.WsConn.ReadMessage()
-		if e, ok :=  err.(*websocket.CloseError); ok && 
-		(e.Code == websocket.CloseNormalClosure || e.Code == websocket.CloseNoStatusReceived) {
+		if e, ok := err.(*websocket.CloseError); ok &&
+			(e.Code == websocket.CloseNormalClosure || e.Code == websocket.CloseNoStatusReceived) {
 			log.Println("Error in reading message for streamer : ", err)
 			break
 		}
-		log.Println("From : " + s.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
+		log.Println("From Streamer : " + s.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
+
+		jsonMap := make(map[string] json.RawMessage)
+		err = json.Unmarshal(msg, &jsonMap)
+		if err != nil {
+			log.Println("error in unmarshal : ", err)
+		}
 	}
 }
-
 
 type Viewer struct {
 	UserId string
@@ -36,25 +42,30 @@ type Viewer struct {
 	Stream *Stream
 }
 
-func (v *Viewer) listenToWs(){
-	defer func(){
+func (v *Viewer) listenToWs() {
+	defer func() {
 		v.WsConn.Close()
 	}()
-	for{
+	for {
 		msgType, msg, err := v.WsConn.ReadMessage()
-		if e, ok :=  err.(*websocket.CloseError); ok && 
-		(e.Code == websocket.CloseNormalClosure || e.Code == websocket.CloseNoStatusReceived) {
+		if e, ok := err.(*websocket.CloseError); ok &&
+			(e.Code == websocket.CloseNormalClosure || e.Code == websocket.CloseNoStatusReceived) {
 			log.Println("Error in reading message for Viewer : ", err)
 			break
 		}
 		log.Println("From : " + v.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
+
+		jsonMap := make(map[string] json.RawMessage)
+		err = json.Unmarshal(msg, &jsonMap)
+		if err != nil {
+			log.Println("error in unmarshal : ", err)
+		}
 	}
 }
 
-
 type Stream struct {
-	Id     string
+	Id       string
 	Streamer *Streamer
-	Viewers *map[string] *Viewer
+	Viewers  *map[string]*Viewer
 	*sync.RWMutex
 }

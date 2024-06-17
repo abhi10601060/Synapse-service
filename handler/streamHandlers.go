@@ -45,6 +45,7 @@ func StartStream(c *gin.Context) {
 		UserId: userId,
 		WsConn: wsConn,
 	}
-
+	go streamer.ListenToWs()
+	
 	Manager.StartStream(&streamer)
 }
