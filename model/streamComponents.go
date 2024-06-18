@@ -28,7 +28,7 @@ func (s *Streamer) ListenToWs() {
 		}
 		log.Println("From Streamer : " + s.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
 
-		HandleWsMessage(msg, s.Stream)
+		HandleWsMessage(msg, s.Stream, false)
 	}
 }
 
@@ -51,11 +51,11 @@ func (v *Viewer) ListenToWs() {
 		}
 		log.Println("From Viewer : " + v.UserId + ", Message type: " + strconv.Itoa(msgType) + ", this is msg : " + string(msg))
 
-		HandleWsMessage(msg, v.Stream)
+		HandleWsMessage(msg, v.Stream, true)
 	}
 }
 
-func HandleWsMessage(msg []byte, stream *Stream) {
+func HandleWsMessage(msg []byte, stream *Stream, fromViewer bool) {
 	jsonMap := make(map[string]json.RawMessage)
 	err := json.Unmarshal(msg, &jsonMap)
 	log.Println("JSON MAP FROM HANDLE MESSAGE IS : ", jsonMap)
@@ -65,10 +65,24 @@ func HandleWsMessage(msg []byte, stream *Stream) {
 	}
 
 	log.Println("Type received from message : ", string(jsonMap["type"]))
-	receivedMsgType,_ := strconv.Atoi(string(jsonMap["type"]))
+	receivedMsgType, _ := strconv.Atoi(string(jsonMap["type"]))
 
 	if receivedMsgType == 1 {
-		stream.SendMessage(msg)
+		stream.SendChatMessage(msg)
+	} else if receivedMsgType == 0 {
+
+		var receivedConnectionMessage ConnectionMessage
+		err := json.Unmarshal(jsonMap["data"], &receivedConnectionMessage)
+		if err != nil {
+			log.Println("error in json parse for connection message: ", err)
+			return
+		}
+
+		if fromViewer {
+			stream.SendSdpToStreamer(&receivedConnectionMessage)
+		} else {
+			stream.SendSdpToViewer(&receivedConnectionMessage)
+		}
 	}
 }
 
@@ -79,7 +93,7 @@ type Stream struct {
 	sync.RWMutex
 }
 
-func (s *Stream) SendMessage(msg []byte) {
+func (s *Stream) SendChatMessage(msg []byte) {
 
 	log.Println("Strated writting message to all viewers...")
 
@@ -97,4 +111,37 @@ func (s *Stream) SendMessage(msg []byte) {
 			log.Println("Error in sending message to streamer : ", err)
 		}
 	}
+}
+
+func (s *Stream) SendSdpToViewer(connectionMessage *ConnectionMessage) {
+	viewerId := connectionMessage.ViewerUserId
+
+	viewer, isExist := s.Viewers[viewerId]
+	if !isExist {
+		log.Println("SendSdpToViewer viewer not exist...")
+		return
+	}
+	msgJson, err := json.Marshal(connectionMessage)
+	if err != nil {
+		log.Println("SendSdpToViewer json marshal error for connectionMessage : ", err)
+		return
+	}
+	err = viewer.WsConn.WriteMessage(1, msgJson)
+	if err != nil {
+		log.Println("SendSdpToViewer error in writeMessage...")
+	}
+	log.Println("SendSdpToViewer sdp sent to Viewer successfully...")
+}
+
+func (s *Stream) SendSdpToStreamer(connectionMessage *ConnectionMessage) {
+	msgJson, err := json.Marshal(connectionMessage)
+	if err != nil {
+		log.Println("SendSdpToStreamer json marshal error for connectionMessage : ", err)
+		return
+	}
+	err = s.Streamer.WsConn.WriteMessage(1, msgJson)
+	if err != nil {
+		log.Println("SendSdpToStreamer error in writeMessage...")
+	}
+	log.Println("SendSdpToStreamer sdp sent to Streamer successfully...")
 }
